@@ -69,29 +69,74 @@ namespace Files.App.Utils.Storage
 			}
 		}
 
-		public Task SearchAsync(IList<ListedItem> results, CancellationToken token)
+		public async Task SearchAsync(IList<ListedItem> results, CancellationToken token)
 		{
 			try
 			{
+				// Check if we should use Everything for global search
+				var searchEngine = UserSettingsService.GeneralSettingsService.PreferredSearchEngine;
+				
+				if (searchEngine == Files.App.Data.Enums.PreferredSearchEngine.Everything)
+				{
+					var everythingService = Ioc.Default.GetService<Files.App.Services.Search.IEverythingSearchService>();
+					if (everythingService != null && everythingService.IsEverythingAvailable())
+					{
+						try
+						{
+							var everythingResults = await everythingService.SearchAsync(Query, Folder, token);
+								
+								if (everythingResults != null && everythingResults.Count > 0)
+								{
+									// Fix: UsedMaxItemCount can be uint.MaxValue which overflows when cast to int
+									var itemsToTake = UsedMaxItemCount == uint.MaxValue ? everythingResults.Count : Math.Min(everythingResults.Count, (int)UsedMaxItemCount);
+									
+									foreach (var item in everythingResults.Take(itemsToTake))
+									{
+										if (item == null)
+											continue;
+										if (token.IsCancellationRequested)
+											break;
+											
+										results.Add(item);
+										
+										if (results.Count == 32 || results.Count % 300 == 0)
+										{
+											SearchTick?.Invoke(this, EventArgs.Empty);
+										}
+									}
+									SearchTick?.Invoke(this, EventArgs.Empty);
+									return;
+								}
+							}
+							catch (OperationCanceledException)
+							{
+								return;
+							}
+							catch (Exception ex)
+							{
+								// Fall through to use default search
+							}
+					}
+				}
+				
+				// Fall back to Windows Search
 				if (App.LibraryManager.TryGetLibrary(Folder, out var library))
 				{
-					return AddItemsForLibraryAsync(library, results, token);
+					await AddItemsForLibraryAsync(library, results, token);
 				}
 				else if (Folder == "Home")
 				{
-					return AddItemsForHomeAsync(results, token);
+					await AddItemsForHomeAsync(results, token);
 				}
 				else
 				{
-					return AddItemsAsync(Folder, results, token);
+					await AddItemsAsync(Folder, results, token);
 				}
 			}
 			catch (Exception e)
 			{
-				App.Logger.LogWarning(e, "Search failure");
+				App.Logger?.LogWarning(e, "Search failure");
 			}
-
-			return Task.CompletedTask;
 		}
 
 		private async Task AddItemsForHomeAsync(IList<ListedItem> results, CancellationToken token)
@@ -130,7 +175,7 @@ namespace Files.App.Utils.Storage
 			}
 			catch (Exception e)
 			{
-				App.Logger.LogWarning(e, "Search failure");
+				App.Logger?.LogWarning(e, "Search failure");
 			}
 
 			return results;
@@ -162,7 +207,7 @@ namespace Files.App.Utils.Storage
 					}
 					catch (Exception ex)
 					{
-						App.Logger.LogWarning(ex, "Error creating ListedItem from StorageItem");
+						App.Logger?.LogWarning(ex, "Error creating ListedItem from StorageItem");
 					}
 
 					if (results.Count == 32 || results.Count % 300 == 0 /*|| sampler.CheckNow()*/)
@@ -343,7 +388,7 @@ namespace Files.App.Utils.Storage
 					}
 					catch (Exception ex)
 					{
-						App.Logger.LogWarning(ex, "Error creating ListedItem from StorageItem");
+						App.Logger?.LogWarning(ex, "Error creating ListedItem from StorageItem");
 					}
 				}
 
