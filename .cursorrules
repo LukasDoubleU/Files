@@ -1,0 +1,399 @@
+# Files App - Cursor AI Rules
+
+## Project Overview
+
+Files is a modern file manager for Windows built with C#, WinUI 3, and XAML following the MVVM (Model-View-ViewModel) architecture pattern. The application emphasizes accessibility, performance, and maintainability.
+
+## Technology Stack
+
+- **Language**: C# (.NET), C++ (native components)
+- **UI Framework**: WinUI 3, XAML
+- **Architecture**: MVVM (Model-View-ViewModel)
+- **Package Manager**: NuGet (Central Package Management)
+- **Build System**: MSBuild (.csproj, .wapproj, .vcxproj)
+
+## Project Structure
+
+- `src/Files.App/` - Main application (UI, ViewModels, Services, Helpers)
+- `src/Files.App (Package)/` - MSIX packaging project
+- `src/Files.App.Controls/` - Custom WinUI controls
+- `src/Files.App.Storage/` - Storage abstractions and implementations
+- `src/Files.Core.Storage/` - Core storage interfaces
+- `src/Files.Shared/` - Shared utilities and models
+- `src/Files.App.CsWin32/` - Windows API interop via CsWin32
+- `src/Files.App.Launcher/` - Native launcher component (C++)
+- `src/Files.App.OpenDialog/` - Custom open dialog (C++)
+- `src/Files.App.SaveDialog/` - Custom save dialog (C++)
+- `src/Files.App.Server/` - Background server process
+- `src/Files.App.BackgroundTasks/` - Background task handlers
+
+## Architecture Principles
+
+### MVVM Pattern (MANDATORY)
+- **Models**: Data structures and business logic (suffix: `Model`)
+- **Views**: XAML UI definitions (suffix: `Page` or `Dialog`)
+- **ViewModels**: Presentation logic, UI state, commands (suffix: `ViewModel`)
+- Views bind to ViewModels via data binding
+- ViewModels should NOT reference Views directly
+- Use dependency injection for services
+
+### Code Quality Standards
+- Follow single-responsibility principle
+- No code duplication - use abstractions and inheritance
+- Test for regressions and memory leaks
+- Prioritize accessibility (use Accessibility Insights for Windows)
+- Workarounds only allowed for OS/API limitations
+- Code must be easily maintainable without core rewrites
+
+## C# Naming Conventions
+
+### Objects and Functions
+1. **Classes**: `PascalCase` (e.g., `FileManager`)
+2. **Interfaces**: `IPascalCase` (e.g., `IStorageService`)
+3. **Structs**: `PascalCase`
+4. **Methods/Functions**: `PascalCase` (e.g., `GetFileAsync`)
+5. **Base Classes**: `Base` prefix (e.g., `BaseViewModel`)
+6. **Services**: `Service` suffix (e.g., `IFileSystemService`)
+7. **Models**: `Model` suffix (e.g., `FileItemModel`)
+8. **ViewModels**: `ViewModel` suffix (e.g., `MainPageViewModel`)
+9. **Dialogs**: `Dialog` suffix (e.g., `SettingsDialog`)
+10. **Pages**: `Page` suffix (e.g., `HomePage`)
+11. **Async Methods**: `Async` suffix (e.g., `LoadDataAsync`)
+
+### Variables and Fields
+1. **Properties**: `PascalCase` (e.g., `CurrentPath`)
+2. **Static Fields/Properties**: `PascalCase`
+3. **Property Backing Fields**: `_PascalCase` (e.g., `_CurrentPath`)
+4. **Public/Protected Fields**: `camelCase`
+5. **Private Fields**: `_camelCase` (e.g., `_fileService`)
+6. **Method Parameters**: `camelCase` (e.g., `filePath`)
+7. **Constants**: `UPPER_CASE` (e.g., `MAX_FILE_SIZE`)
+8. **Primitive Types**: Use `int`, `long`, `string` NOT `Int32`, `Int64`, `String`
+9. **OS/API Calls Only**: Hungarian Notation allowed
+
+### Boolean Naming
+Use prefixes: `Is`, `Has`, `Have`, `Any`, `Can` or similar
+- Examples: `IsVisible`, `HasChildren`, `CanExecute`
+
+### Enums
+- Do NOT use `Enum` or `Flag(s)` suffixes/prefixes
+- Example: `SortDirection` NOT `SortDirectionEnum`
+
+## Code Style and Formatting
+
+### Brackets and Spacing
+1. **Curly Brackets**: Align on new lines
+```csharp
+if (condition)
+{
+    DoSomething();
+}
+```
+
+2. **Single-Line Statements**: Do NOT use curly brackets for single-line `if`, `for`, `foreach`
+```csharp
+if (condition)
+    DoSomething();
+```
+
+3. **Method Returns**: Do NOT omit curly braces
+```csharp
+public string GetName()
+{
+    return _name;
+}
+```
+
+4. **Blank Lines**: Insert blank line after closing curly bracket
+
+5. **do-while**: Align `while();` on same line as closing bracket
+```csharp
+do
+{
+    // code
+} while (condition);
+```
+
+### Code Organization
+1. **NO #region directives** - Use proper class organization instead
+2. **Separation**: Fields, properties, methods, constructors separated by one line
+3. **Backing Fields**: No line separation between backing field and property
+4. **Constants**: Define in `Constants` class following its structure
+5. **Access Modifiers**: Do NOT use `public` in interface declarations
+
+### Class Structure (Order Matters)
+
+```csharp
+public class ExampleViewModel : BaseViewModel
+{
+    // 1. Static fields
+    private static readonly string _defaultPath;
+    
+    // 2. Static properties
+    public static string DefaultPath { get; }
+    
+    // 3. readonly fields
+    private readonly IFileService _fileService;
+    
+    // 4. Fields
+    private string _currentPath;
+    
+    // 5. _disposed field (if IDisposable)
+    private bool _disposed;
+    
+    // 6. Service properties
+    private INavigationService NavigationService { get; }
+    
+    // 7. Properties (no line between backing field and property)
+    private string _CurrentPath;
+    public string CurrentPath
+    {
+        get => _CurrentPath;
+        set => SetProperty(ref _CurrentPath, value);
+    }
+    
+    // 8. UI properties
+    public bool IsLoading { get; set; }
+    
+    // 9. ICommand properties
+    public ICommand NavigateCommand { get; }
+    
+    // 10. Constructor
+    public ExampleViewModel(IFileService fileService)
+    {
+        _fileService = fileService;
+        NavigateCommand = new RelayCommand(ExecuteNavigate);
+    }
+    
+    // 11. Command implementation (private/protected, can be virtual)
+    private void ExecuteNavigate()
+    {
+        // implementation
+    }
+    
+    // 12. Public methods (descending parameter count)
+    public virtual void LoadData(string path, bool force)
+    {
+    }
+    
+    public void LoadData(string path)
+    {
+    }
+    
+    // 13. Protected methods (descending parameter count)
+    protected virtual void OnPropertyChanged(string propertyName)
+    {
+    }
+    
+    // 14. Private methods
+    private void UpdateState()
+    {
+    }
+    
+    // 15. Static methods
+    public static string GetDefaultPath()
+    {
+        return _defaultPath;
+    }
+    
+    // 16. Abstract methods (if class is abstract)
+    
+    // 17. Operators
+    
+    // 18. Assertions
+    private void AssertNotDisposed()
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(ExampleViewModel));
+    }
+    
+    // 19. IDisposable.Dispose()
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+            
+        _disposed = true;
+    }
+}
+```
+
+### Interface Structure
+
+```csharp
+public interface IFileService
+{
+    // 1. Properties (alphabetical)
+    string CurrentPath { get; }
+    bool IsInitialized { get; }
+    
+    // 2. Methods (name descending, then parameter count descending)
+    Task<FileItem> GetFileAsync(string path, bool includeMetadata);
+    Task<FileItem> GetFileAsync(string path);
+    Task DeleteFileAsync(string path);
+}
+```
+
+## Best Practices
+
+### Commands and Events
+1. **Commands**: Use `ICommand`, NOT `RelayCommand<Type>`
+2. **Event Handlers**: Do NOT manually invoke event handling functions or commands
+3. **EventArgs**: Always create new `EventArgs` classes for custom events
+
+### Classes and Interfaces
+1. **Abstract/Sealed**: Mark classes as `abstract` or `sealed` when applicable
+2. **Documentation**: Interfaces MUST be documented with XML comments
+3. **IDisposable**: Any class implementing `IDisposable` must have `private bool _disposed;` field
+
+### Number Literals
+Add letter suffixes to number values:
+- `0.1d` (double)
+- `100000000000L` (long)
+- `1.1f` (float)
+
+### Helper Classes and Extensions
+1. **Helper Classes**: Must be either fully static OR fully instanced
+2. **Extension Classes**: Must be static and contain extensions for ONE type or its derivatives
+
+## XAML Style
+
+- **REQUIRED**: Use [XAML Styler](https://marketplace.visualstudio.com/items?itemName=TeamXavalon.XAMLStyler2022)
+- Settings file: `Settings.XamlStyler` in project root
+- Run XAML Styler before committing any XAML changes
+
+## File Organization
+
+### GlobalUsings.cs
+- Use global usings for commonly used namespaces
+- Keep organized and minimal
+
+### Folder Structure
+- `Actions/` - User actions and commands
+- `Converters/` - Value converters for XAML binding
+- `Data/` - Data models and DTOs
+- `Dialogs/` - Dialog controls
+- `Extensions/` - Extension methods
+- `Helpers/` - Helper/utility classes
+- `Services/` - Service implementations
+- `Utils/` - Utility functions
+- `ViewModels/` - View models
+- `Views/` - XAML views and pages
+- `UserControls/` - Reusable user controls
+
+## Common Patterns
+
+### Dependency Injection
+```csharp
+public class MyService : IMyService
+{
+    private readonly IFileSystemService _fileSystemService;
+    private readonly IDialogService _dialogService;
+    
+    public MyService(
+        IFileSystemService fileSystemService,
+        IDialogService dialogService)
+    {
+        _fileSystemService = fileSystemService;
+        _dialogService = dialogService;
+    }
+}
+```
+
+### Async/Await
+```csharp
+public async Task<FileItem> LoadFileAsync(string path)
+{
+    AssertNotDisposed();
+    
+    var file = await _fileService.GetFileAsync(path);
+    
+    return file;
+}
+```
+
+### Property Change Notification
+```csharp
+private string _FileName;
+public string FileName
+{
+    get => _FileName;
+    set => SetProperty(ref _FileName, value);
+}
+```
+
+## Testing
+
+- Test for potential regressions
+- Check for memory leaks
+- Verify accessibility with Accessibility Insights for Windows
+- Test on multiple Windows versions
+
+## What NOT to Do
+
+❌ Do NOT use `#region` directives
+❌ Do NOT duplicate code
+❌ Do NOT manually invoke event handlers
+❌ Do NOT use `RelayCommand<Type>` (use `ICommand`)
+❌ Do NOT use `Enum` or `Flag` suffixes
+❌ Do NOT omit curly braces in method returns
+❌ Do NOT use `public` modifier in interfaces
+❌ Do NOT create files without following MVVM pattern
+❌ Do NOT skip accessibility considerations
+
+## Windows API Interop
+
+- Use CsWin32 for Windows API calls (`Files.App.CsWin32` project)
+- Define APIs in `NativeMethods.json` or `NativeMethods.txt`
+- Use `ComPtr<T>` for COM interfaces
+- Use `ComHeapPtr<T>` for COM heap allocations
+
+## Native Components (C++)
+
+- Follow Windows SDK conventions
+- Use COM for interop with C# code
+- Implement proper reference counting
+- Use RAII for resource management
+
+## Localization
+
+- All user-facing strings go in `.resw` files under `Strings/`
+- Use resource keys in XAML: `x:Uid="ResourceKey"`
+- Support Crowdin for translations (`crowdin.yml`)
+
+## Performance
+
+- Use async/await for I/O operations
+- Avoid blocking UI thread
+- Dispose resources properly
+- Use weak event patterns when appropriate
+- Profile for memory leaks
+
+## Accessibility
+
+- Use AutomationProperties in XAML
+- Provide keyboard navigation
+- Support high contrast themes
+- Test with Accessibility Insights for Windows
+- Ensure screen reader compatibility
+
+## When Making Changes
+
+1. Follow MVVM architecture strictly
+2. Apply all naming conventions
+3. Maintain class/interface structure order
+4. Run XAML Styler on XAML files
+5. Test for accessibility
+6. Check for memory leaks
+7. Verify no code duplication
+8. Ensure single-responsibility principle
+9. Add XML documentation for interfaces
+10. Test on multiple scenarios
+
+## Additional Notes
+
+- This is a WinUI 3 application targeting Windows 10/11
+- Uses MSIX packaging for deployment
+- Supports multiple architectures (x64, x86, ARM64)
+- Background tasks run in separate process (`Files.App.Server`)
+- Custom file dialogs implemented as COM servers
